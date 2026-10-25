@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/router.dart';
@@ -10,6 +11,8 @@ import '../../../core/money/money.dart';
 import '../../../core/widgets/app_svg_icon.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/summary_card.dart';
+import '../../../core/widgets/user_avatar.dart';
+import '../../profile/data/profile_repository.dart';
 
 /// الفترات المتاحة في الرئيسية (القسم 5.2).
 enum DashboardPeriod {
@@ -98,22 +101,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 }
 
-class _Header extends StatelessWidget {
+class _Header extends ConsumerWidget {
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final firstName = ref.watch(profileProvider).value?.fullName.trim().split(RegExp(r'\s+')).first;
     return Row(
       children: [
-        const CircleAvatar(
-          radius: 22,
-          backgroundColor: AppColors.primarySoft,
-          child: Icon(AppIcons.profile, color: AppColors.primary),
+        InkWell(
+          onTap: () => context.push(AppRoutes.profile),
+          customBorder: const CircleBorder(),
+          child: const CurrentUserAvatar(),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('مرحباً', style: AppTextStyles.caption),
+              Text(firstName == null ? 'مرحباً' : 'مرحباً، $firstName', style: AppTextStyles.caption),
               Text('ملخص أعمالي', style: AppTextStyles.screenTitle),
             ],
           ),

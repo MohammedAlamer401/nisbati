@@ -30,6 +30,10 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
+		<key>NSCameraUsageDescription</key>
+		<string>يستخدم تطبيق نسبتي الكاميرا لالتقاط صورة ملفك الشخصي.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>يستخدم تطبيق نسبتي الصور لاختيار صورة ملفك الشخصي.</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>يستخدم تطبيق نسبتي بصمة الوجه لفتح التطبيق بأمان.</string>
 		<key>UIApplicationSceneManifest</key>

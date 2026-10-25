@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../app/router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
 import '../../../core/database/app_database.dart';
 import '../../../core/widgets/nisbati_logo.dart';
+import '../../auth/application/auth_controller.dart';
 import 'splash_illustration.dart';
 
 /// تهيئة التطبيق: فتح قاعدة البيانات وتنفيذ البذور عند أول تشغيل.
@@ -41,8 +40,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     try {
       await ref.read(appInitProvider.future);
       await minimum;
-      // توجيه حالات الدخول (onboarding / lock) يُضاف في المرحلة 3.
-      if (mounted) context.go(AppRoutes.dashboard);
+      // تحديد الوجهة (الترحيب / القفل) يغيّر حالة الدخول، والموجّه ينقل تلقائياً.
+      await ref.read(authControllerProvider.notifier).initialize();
     } catch (_) {
       ref.invalidate(appInitProvider);
       if (mounted) setState(() => _failed = true);

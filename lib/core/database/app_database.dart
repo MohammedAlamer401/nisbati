@@ -57,6 +57,14 @@ class AppDatabase extends _$AppDatabase {
         },
       );
 
+  /// يمسح كل البيانات ويعيد البذور الافتراضية (المسح الكامل — القسم 6.6).
+  Future<void> resetToDefaults() => transaction(() async {
+        for (final TableInfo table in [collections, services, clients, serviceTypes, userProfiles, appSettings]) {
+          await delete(table).go();
+        }
+        await _seed();
+      });
+
   Future<void> _seed() async {
     await batch((b) {
       b.insertAll(serviceTypes, [
