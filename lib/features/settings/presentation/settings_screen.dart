@@ -95,11 +95,11 @@ class SettingsScreen extends ConsumerWidget {
               trailing: _Value(prefs == null ? '' : '${prefs.defaultCommission.toPlainString()}%'),
               onTap: prefs == null ? null : () => _editPercent(context, ref, prefs.defaultCommission),
             ),
-            const ListTile(
-              enabled: false,
-              leading: AppSvgIcon(AppSvgIcons.services, muted: true),
-              title: Text('أنواع الخدمات'),
-              subtitle: Text('قريباً (المرحلة 5)'),
+            ListTile(
+              leading: const AppSvgIcon(AppSvgIcons.services),
+              title: const Text('أنواع الخدمات'),
+              trailing: const Icon(Icons.chevron_left_rounded),
+              onTap: () => context.push(AppRoutes.serviceTypes),
             ),
           ]),
           const _SectionTitle('البيانات'),

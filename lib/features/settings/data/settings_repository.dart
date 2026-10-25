@@ -73,3 +73,8 @@ final settingsRepositoryProvider =
 final preferencesProvider = StreamProvider<AppPreferences>(
   (ref) => ref.watch(settingsRepositoryProvider).watchPreferences(),
 );
+
+/// رمز العملة الحالي لعرض المبالغ.
+final currencySymbolProvider = Provider<String>(
+  (ref) => ref.watch(preferencesProvider).value?.currencySymbol ?? SettingKeys.defaults[SettingKeys.currencySymbol]!,
+);

@@ -6,59 +6,64 @@ import '../../../app/router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_icons.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/formatting/arabic_plural.dart';
 import '../../../core/formatting/currency_formatter.dart';
 import '../../../core/money/money.dart';
+import '../../../core/time/date_period.dart';
 import '../../../core/widgets/app_svg_icon.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/period_picker.dart';
 import '../../../core/widgets/summary_card.dart';
 import '../../../core/widgets/user_avatar.dart';
 import '../../profile/data/profile_repository.dart';
+import '../../reports/data/reports_repository.dart';
+import '../../services/data/services_repository.dart';
+import '../../services/domain/service_models.dart';
+import '../../services/presentation/widgets/service_tile.dart';
+import '../../settings/data/settings_repository.dart';
+import 'widgets/monthly_chart.dart';
 
-/// الفترات المتاحة في الرئيسية (القسم 5.2).
-enum DashboardPeriod {
-  thisMonth('هذا الشهر'),
-  lastMonth('الشهر السابق'),
-  thisYear('هذه السنة'),
-  custom('فترة مخصصة');
-
-  const DashboardPeriod(this.label);
-  final String label;
-}
-
-/// الرئيسية (الشاشة 10). الأرقام تُربط بقاعدة البيانات في المرحلة 7.
-class DashboardScreen extends StatefulWidget {
+/// الرئيسية (الشاشة 10): كل المؤشرات تعتمد الفترة المختارة نفسها (القسم 5.2).
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
-  DashboardPeriod _period = DashboardPeriod.thisMonth;
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
+  var _period = DatePeriod.of(PeriodKind.thisMonth);
 
   @override
   Widget build(BuildContext context) {
-    final zero = CurrencyFormatter.format(Money.zero);
+    final symbol = ref.watch(currencySymbolProvider);
+    String money(Money m) => CurrencyFormatter.format(m, symbol: symbol);
+    final totals = ref.watch(totalsProvider(ServiceFilter(period: _period))).value ?? Totals.empty;
+    final outstanding = ref.watch(outstandingProvider).value ?? Money.zero;
+    final months = ref.watch(recentMonthsProvider).value;
+    final latest = ref.watch(latestServicesProvider);
+    final hasAnyService = latest.value?.isNotEmpty ?? true;
 
     return Scaffold(
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 16, 24),
           children: [
-            _Header(),
+            const _Header(),
             const SizedBox(height: 12),
             Align(
               alignment: AlignmentDirectional.centerStart,
-              child: _PeriodSelector(
-                value: _period,
+              child: PeriodButton(
+                period: _period,
+                allowAll: false,
                 onChanged: (period) => setState(() => _period = period),
               ),
             ),
             const SizedBox(height: 12),
             SummaryCard(
               title: 'مستحقاتي خلال الفترة',
-              value: zero,
-              subtitle: 'من 0 خدمات',
+              value: money(totals.collection.commission),
+              subtitle: totals.count == 0 ? 'لا خدمات في هذه الفترة' : '${ArabicPlural.services(totals.count)} في هذه الفترة',
               icon: AppIcons.collection,
               large: true,
             ),
@@ -68,7 +73,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: SummaryCard(
                     title: 'المحصّل منها',
-                    value: zero,
+                    value: money(totals.collection.collected),
                     icon: AppIcons.check,
                     accent: AppColors.success,
                   ),
@@ -77,7 +82,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Expanded(
                   child: SummaryCard(
                     title: 'المتبقي منها',
-                    value: zero,
+                    value: money(totals.collection.remaining),
                     icon: Icons.schedule_rounded,
                     accent: AppColors.warning,
                   ),
@@ -85,15 +90,49 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            _InfoRow(label: 'قيمة الخدمات', value: zero),
-            const SizedBox(height: 24),
-            EmptyState(
-              icon: AppSvgIcons.services,
-              title: 'لا توجد خدمات خلال هذه الفترة',
-              message: 'سجّل خدمتك الأولى وسيحسب التطبيق نسبتك فوراً.',
-              actionLabel: 'أضف أول خدمة',
-              onAction: () => context.go(AppRoutes.services),
+            _InfoRow(label: 'قيمة الخدمات', value: money(totals.value)),
+            const SizedBox(height: 12),
+            _OutstandingStrip(
+              amount: money(outstanding),
+              hasOutstanding: !outstanding.isZero,
+              onTap: () => context.go(AppRoutes.outstandingServices),
             ),
+            if (hasAnyService && months != null) ...[
+              const SizedBox(height: 12),
+              MonthlyChart(months: months, symbol: symbol),
+            ],
+            const SizedBox(height: 20),
+            if (!hasAnyService)
+              EmptyState(
+                icon: AppSvgIcons.services,
+                title: 'لا توجد خدمات بعد',
+                message: 'سجّل خدمتك الأولى وسيحسب التطبيق نسبتك فوراً.',
+                actionLabel: 'أضف أول خدمة',
+                onAction: () => context.push(AppRoutes.newService()),
+              )
+            else ...[
+              Row(
+                children: [
+                  Expanded(child: Text('آخر الخدمات', style: AppTextStyles.cardTitle)),
+                  TextButton(onPressed: () => context.go(AppRoutes.services), child: const Text('عرض الكل')),
+                ],
+              ),
+              const SizedBox(height: 4),
+              for (final item in latest.value ?? const <ServiceListItem>[]) ...[
+                ServiceTile(
+                  item: item,
+                  showClient: item.clientName,
+                  onTap: () => context.push(AppRoutes.serviceDetails(item.service.id)),
+                ),
+                const SizedBox(height: 10),
+              ],
+              const SizedBox(height: 6),
+              FilledButton.icon(
+                onPressed: () => context.push(AppRoutes.newService()),
+                icon: const Icon(Icons.add_rounded),
+                label: const Text('إضافة خدمة'),
+              ),
+            ],
           ],
         ),
       ),
@@ -102,6 +141,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class _Header extends ConsumerWidget {
+  const _Header();
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final firstName = ref.watch(profileProvider).value?.fullName.trim().split(RegExp(r'\s+')).first;
@@ -127,36 +168,43 @@ class _Header extends ConsumerWidget {
   }
 }
 
-class _PeriodSelector extends StatelessWidget {
-  const _PeriodSelector({required this.value, required this.onChanged});
+/// إجمالي غير المحصّل حتى الآن، بلا فترة، ويفتح الخدمات غير المحصّلة.
+class _OutstandingStrip extends StatelessWidget {
+  const _OutstandingStrip({required this.amount, required this.hasOutstanding, required this.onTap});
 
-  final DashboardPeriod value;
-  final ValueChanged<DashboardPeriod> onChanged;
+  final String amount;
+  final bool hasOutstanding;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<DashboardPeriod>(
-      initialValue: value,
-      onSelected: onChanged,
-      itemBuilder: (context) => [
-        for (final period in DashboardPeriod.values)
-          PopupMenuItem(value: period, child: Text(period.label)),
-      ],
-      child: Container(
-        padding: const EdgeInsetsDirectional.symmetric(horizontal: 14, vertical: 8),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.primary),
-            const SizedBox(width: 6),
-            Text(value.label, style: AppTextStyles.label),
-            const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
-          ],
+    return Material(
+      color: hasOutstanding ? AppColors.warningSoft : AppColors.successSoft,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: hasOutstanding ? onTap : null,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(
+                hasOutstanding ? Icons.pending_actions_rounded : Icons.verified_rounded,
+                color: hasOutstanding ? AppColors.warning : AppColors.success,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  hasOutstanding ? 'غير محصّل حتى الآن' : 'لا مستحقات غير محصّلة',
+                  style: AppTextStyles.label.copyWith(color: hasOutstanding ? AppColors.warning : AppColors.success),
+                ),
+              ),
+              if (hasOutstanding) ...[
+                Text(amount, style: AppTextStyles.money(AppTextStyles.cardTitle.copyWith(color: AppColors.warning))),
+                const Icon(Icons.chevron_left_rounded, color: AppColors.warning),
+              ],
+            ],
+          ),
         ),
       ),
     );
@@ -177,10 +225,7 @@ class _InfoRow extends StatelessWidget {
         child: Row(
           children: [
             Expanded(
-              child: Text(
-                label,
-                style: AppTextStyles.label.copyWith(color: AppColors.textSecondary),
-              ),
+              child: Text(label, style: AppTextStyles.label.copyWith(color: AppColors.textSecondary)),
             ),
             Text(value, style: AppTextStyles.money(AppTextStyles.cardTitle)),
           ],

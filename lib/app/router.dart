@@ -2,13 +2,17 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/widgets/app_svg_icon.dart';
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/presentation/change_pin_screen.dart';
 import '../features/auth/presentation/forgot_pin_screen.dart';
 import '../features/auth/presentation/lock_screen.dart';
 import '../features/auth/presentation/new_recovery_code_screen.dart';
 import '../features/auth/presentation/pin_verify_screen.dart';
+import '../features/clients/presentation/client_details_screen.dart';
+import '../features/clients/presentation/client_form_screen.dart';
+import '../features/clients/presentation/clients_screen.dart';
+import '../features/collections/presentation/collection_form_screen.dart';
+import '../features/collections/presentation/collections_log_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/onboarding/presentation/biometric_step_screen.dart';
 import '../features/onboarding/presentation/pin_step_screen.dart';
@@ -16,8 +20,12 @@ import '../features/onboarding/presentation/preferences_step_screen.dart';
 import '../features/onboarding/presentation/profile_step_screen.dart';
 import '../features/onboarding/presentation/recovery_step_screen.dart';
 import '../features/onboarding/presentation/welcome_screen.dart';
-import '../features/placeholders/section_placeholder_screen.dart';
+import '../features/reports/presentation/reports_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/services/presentation/service_details_screen.dart';
+import '../features/services/presentation/service_form_screen.dart';
+import '../features/services/presentation/services_screen.dart';
+import '../features/settings/presentation/service_types_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/splash/presentation/splash_screen.dart';
@@ -38,6 +46,22 @@ abstract final class AppRoutes {
   static const changePin = '/settings/change-pin';
   static const newRecoveryCode = '/settings/recovery-code';
   static const verifyPin = '/settings/verify-pin';
+
+  static const newClient = '/clients/new';
+  static String clientDetails(int id) => '/clients/$id';
+  static String editClient(int id) => '/clients/$id/edit';
+
+  static String newService({int? clientId}) =>
+      Uri(path: '/services/new', queryParameters: clientId == null ? null : {'clientId': '$clientId'}).toString();
+  static const outstandingServices = '/services?outstanding=1';
+  static String serviceDetails(int id) => '/services/$id';
+  static String editService(int id) => '/services/$id/edit';
+  static String newCollection(int serviceId) => '/services/$serviceId/collect';
+  static String collections(int serviceId) => '/services/$serviceId/collections';
+  static String editCollection(int serviceId, int collectionId) =>
+      '/services/$serviceId/collections/$collectionId/edit';
+
+  static const serviceTypes = '/settings/service-types';
 
   static String onboardingStep(OnboardingStep step) => '$onboarding/${step.name}';
 }
@@ -67,6 +91,8 @@ String? authRedirect(AuthState auth, GoRouterState state) {
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+int _id(GoRouterState state) => int.parse(state.pathParameters['id']!);
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ValueNotifier(ref.read(authControllerProvider));
@@ -114,34 +140,80 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.clients,
-              builder: (context, state) => const SectionPlaceholderScreen(
-                title: 'العملاء',
-                icon: AppSvgIcons.clients,
-                emptyTitle: 'لا يوجد عملاء بعد',
-                phase: 4,
-              ),
+              builder: (context, state) => const ClientsScreen(),
+              routes: [
+                fullScreen('new', ClientFormScreen.new),
+                // التفاصيل فوق كل الأقسام حتى تُفتح من أي قسم دون تبديل التبويب.
+                GoRoute(
+                  path: ':id',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => ClientDetailsScreen(clientId: _id(state)),
+                  routes: [
+                    GoRoute(
+                      path: 'edit',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => ClientFormScreen(clientId: _id(state)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.services,
-              builder: (context, state) => const SectionPlaceholderScreen(
-                title: 'الخدمات',
-                icon: AppSvgIcons.services,
-                emptyTitle: 'لا توجد خدمات بعد',
-                phase: 5,
+              // مفتاح حسب الاستعلام: فتح «غير المحصّل» من الرئيسية يعيد ضبط الفلتر.
+              builder: (context, state) => ServicesScreen(
+                key: ValueKey(state.uri.query),
+                initialOutstanding: state.uri.queryParameters['outstanding'] == '1',
               ),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => ServiceFormScreen(
+                    initialClientId: int.tryParse(state.uri.queryParameters['clientId'] ?? ''),
+                  ),
+                ),
+                GoRoute(
+                  path: ':id',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => ServiceDetailsScreen(serviceId: _id(state)),
+                  routes: [
+                    GoRoute(
+                      path: 'edit',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => ServiceFormScreen(serviceId: _id(state)),
+                    ),
+                    GoRoute(
+                      path: 'collect',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => CollectionFormScreen(serviceId: _id(state)),
+                    ),
+                    GoRoute(
+                      path: 'collections',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => CollectionsLogScreen(serviceId: _id(state)),
+                      routes: [
+                        GoRoute(
+                          path: ':cid/edit',
+                          parentNavigatorKey: _rootNavigatorKey,
+                          builder: (context, state) => CollectionFormScreen(
+                            serviceId: _id(state),
+                            collectionId: int.parse(state.pathParameters['cid']!),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.reports,
-              builder: (context, state) => const SectionPlaceholderScreen(
-                title: 'التقارير',
-                icon: AppSvgIcons.reports,
-                emptyTitle: 'لا توجد بيانات لعرضها',
-                phase: 7,
-              ),
+              builder: (context, state) => const ReportsScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -153,6 +225,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 fullScreen('change-pin', ChangePinScreen.new),
                 fullScreen('recovery-code', NewRecoveryCodeScreen.new),
                 fullScreen('verify-pin', PinVerifyScreen.new),
+                fullScreen('service-types', ServiceTypesScreen.new),
               ],
             ),
           ]),
