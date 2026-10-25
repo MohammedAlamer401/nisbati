@@ -9,6 +9,9 @@ import '../features/auth/presentation/forgot_pin_screen.dart';
 import '../features/auth/presentation/lock_screen.dart';
 import '../features/auth/presentation/new_recovery_code_screen.dart';
 import '../features/auth/presentation/pin_verify_screen.dart';
+import '../features/clients/presentation/client_details_screen.dart';
+import '../features/clients/presentation/client_form_screen.dart';
+import '../features/clients/presentation/clients_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/onboarding/presentation/biometric_step_screen.dart';
 import '../features/onboarding/presentation/pin_step_screen.dart';
@@ -39,6 +42,10 @@ abstract final class AppRoutes {
   static const newRecoveryCode = '/settings/recovery-code';
   static const verifyPin = '/settings/verify-pin';
 
+  static const newClient = '/clients/new';
+  static String clientDetails(int id) => '/clients/$id';
+  static String editClient(int id) => '/clients/$id/edit';
+
   static String onboardingStep(OnboardingStep step) => '$onboarding/${step.name}';
 }
 
@@ -67,6 +74,8 @@ String? authRedirect(AuthState auth, GoRouterState state) {
 }
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
+
+int _id(GoRouterState state) => int.parse(state.pathParameters['id']!);
 
 final routerProvider = Provider<GoRouter>((ref) {
   final auth = ValueNotifier(ref.read(authControllerProvider));
@@ -114,12 +123,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.clients,
-              builder: (context, state) => const SectionPlaceholderScreen(
-                title: 'العملاء',
-                icon: AppSvgIcons.clients,
-                emptyTitle: 'لا يوجد عملاء بعد',
-                phase: 4,
-              ),
+              builder: (context, state) => const ClientsScreen(),
+              routes: [
+                fullScreen('new', ClientFormScreen.new),
+                GoRoute(
+                  path: ':id',
+                  builder: (context, state) => ClientDetailsScreen(clientId: _id(state)),
+                  routes: [
+                    GoRoute(
+                      path: 'edit',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => ClientFormScreen(clientId: _id(state)),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [

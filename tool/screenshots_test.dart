@@ -6,6 +6,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:nisbati/core/database/app_database.dart';
+import 'package:nisbati/features/clients/data/clients_repository.dart';
+import 'package:nisbati/features/clients/domain/client_models.dart';
 
 import '../test/helpers/test_app.dart';
 
@@ -54,6 +57,36 @@ void main() {
     await _shot('04_recovery_step');
     await tapVisible(tester, find.widgetWithText(FilledButton, 'التالي'));
     await _shot('05_biometric_step');
+  });
+
+  appTest('clients', (tester, app) async {
+    _phone(tester);
+    await app.seedExistingUser();
+    final clients = ClientsRepository(app.db);
+    final happy = await clients.create(const ClientInput(name: 'مصنع هابي', phone: '0912345678', address: 'طرابلس'));
+    await clients.create(const ClientInput(name: 'مؤسسة النور للتقنية', phone: '0923334444'));
+    final serviceId = await app.db.into(app.db.services).insert(ServicesCompanion.insert(
+          clientId: happy,
+          serviceTypeId: 1,
+          title: 'تركيب 5 نقاط شبكة',
+          titleNormalized: 'تركيب 5 نقاط شبكه',
+          serviceDate: '2026-10-20',
+          serviceValueMinor: 100000,
+          commissionBp: 2000,
+          commissionMinor: 20000,
+        ));
+    await app.db.into(app.db.collections).insert(CollectionsCompanion.insert(
+          serviceId: serviceId,
+          amountMinor: 5000,
+          collectionDate: '2026-10-22',
+          paymentMethod: PaymentMethod.cash,
+        ));
+    await app.pump(tester);
+    await enterPin(tester, '482915');
+    await tapVisible(tester, find.text('العملاء'));
+    await _shot('09_clients');
+    await tapVisible(tester, find.text('مصنع هابي'));
+    await _shot('10_client_details');
   });
 
   appTest('lock + settings', (tester, app) async {

@@ -20,6 +20,7 @@ class LabeledField extends StatelessWidget {
     this.maxLength,
     this.suffixText,
     this.onChanged,
+    this.maxLines = 1,
   });
 
   final String label;
@@ -36,6 +37,7 @@ class LabeledField extends StatelessWidget {
   final int? maxLength;
   final String? suffixText;
   final ValueChanged<String>? onChanged;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +62,8 @@ class LabeledField extends StatelessWidget {
           textInputAction: textInputAction,
           inputFormatters: inputFormatters,
           maxLength: maxLength,
+          maxLines: maxLines,
+          minLines: maxLines > 1 ? 2 : null,
           onChanged: onChanged,
           style: AppTextStyles.body,
           decoration: InputDecoration(
