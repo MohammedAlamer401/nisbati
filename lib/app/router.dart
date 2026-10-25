@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../core/widgets/app_svg_icon.dart';
 import '../features/auth/application/auth_controller.dart';
 import '../features/auth/presentation/change_pin_screen.dart';
 import '../features/auth/presentation/forgot_pin_screen.dart';
@@ -21,7 +20,7 @@ import '../features/onboarding/presentation/preferences_step_screen.dart';
 import '../features/onboarding/presentation/profile_step_screen.dart';
 import '../features/onboarding/presentation/recovery_step_screen.dart';
 import '../features/onboarding/presentation/welcome_screen.dart';
-import '../features/placeholders/section_placeholder_screen.dart';
+import '../features/reports/presentation/reports_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
 import '../features/services/presentation/service_details_screen.dart';
 import '../features/services/presentation/service_form_screen.dart';
@@ -54,6 +53,7 @@ abstract final class AppRoutes {
 
   static String newService({int? clientId}) =>
       Uri(path: '/services/new', queryParameters: clientId == null ? null : {'clientId': '$clientId'}).toString();
+  static const outstandingServices = '/services?outstanding=1';
   static String serviceDetails(int id) => '/services/$id';
   static String editService(int id) => '/services/$id/edit';
   static String newCollection(int serviceId) => '/services/$serviceId/collect';
@@ -162,7 +162,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.services,
-              builder: (context, state) => const ServicesScreen(),
+              // مفتاح حسب الاستعلام: فتح «غير المحصّل» من الرئيسية يعيد ضبط الفلتر.
+              builder: (context, state) => ServicesScreen(
+                key: ValueKey(state.uri.query),
+                initialOutstanding: state.uri.queryParameters['outstanding'] == '1',
+              ),
               routes: [
                 GoRoute(
                   path: 'new',
@@ -209,12 +213,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.reports,
-              builder: (context, state) => const SectionPlaceholderScreen(
-                title: 'التقارير',
-                icon: AppSvgIcons.reports,
-                emptyTitle: 'لا توجد بيانات لعرضها',
-                phase: 7,
-              ),
+              builder: (context, state) => const ReportsScreen(),
             ),
           ]),
           StatefulShellBranch(routes: [

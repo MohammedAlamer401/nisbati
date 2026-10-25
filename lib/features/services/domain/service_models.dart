@@ -50,6 +50,7 @@ class ServiceFilter {
     this.clientId,
     this.period = DatePeriod.all,
     this.sort = ServiceSort.newest,
+    this.outstandingOnly = false,
   });
 
   final String query;
@@ -59,20 +60,26 @@ class ServiceFilter {
   final DatePeriod period;
   final ServiceSort sort;
 
+  /// الخدمات التي بقي لها مبلغ غير محصّل (غير محصّل + جزئي).
+  final bool outstandingOnly;
+
   ServiceFilter copyWith({
     String? query,
     CollectionStatus? Function()? status,
     int? Function()? serviceTypeId,
+    int? Function()? clientId,
     DatePeriod? period,
     ServiceSort? sort,
+    bool? outstandingOnly,
   }) =>
       ServiceFilter(
         query: query ?? this.query,
         status: status != null ? status() : this.status,
         serviceTypeId: serviceTypeId != null ? serviceTypeId() : this.serviceTypeId,
-        clientId: clientId,
+        clientId: clientId != null ? clientId() : this.clientId,
         period: period ?? this.period,
         sort: sort ?? this.sort,
+        outstandingOnly: outstandingOnly ?? this.outstandingOnly,
       );
 
   @override
@@ -83,10 +90,11 @@ class ServiceFilter {
       other.serviceTypeId == serviceTypeId &&
       other.clientId == clientId &&
       other.period == period &&
-      other.sort == sort;
+      other.sort == sort &&
+      other.outstandingOnly == outstandingOnly;
 
   @override
-  int get hashCode => Object.hash(query, status, serviceTypeId, clientId, period, sort);
+  int get hashCode => Object.hash(query, status, serviceTypeId, clientId, period, sort, outstandingOnly);
 }
 
 /// التعديل يجعل المستحق أقل من المحصّل (القسم 5.4).

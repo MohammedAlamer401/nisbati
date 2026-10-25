@@ -19,18 +19,25 @@ import 'widgets/service_tile.dart';
 
 /// قائمة الخدمات (الشاشة 14): بحث، وفلاتر الحالة، والنوع والفترة، والترتيب.
 class ServicesScreen extends ConsumerStatefulWidget {
-  const ServicesScreen({super.key});
+  const ServicesScreen({super.key, this.initialOutstanding = false});
+
+  /// تُفتح من «غير محصّل حتى الآن» في الرئيسية.
+  final bool initialOutstanding;
 
   @override
   ConsumerState<ServicesScreen> createState() => _ServicesScreenState();
 }
 
 class _ServicesScreenState extends ConsumerState<ServicesScreen> {
-  var _filter = const ServiceFilter();
+  late var _filter = ServiceFilter(
+    outstandingOnly: widget.initialOutstanding,
+    sort: widget.initialOutstanding ? ServiceSort.highestRemaining : ServiceSort.newest,
+  );
 
   static const _statuses = [CollectionStatus.uncollected, CollectionStatus.partial, CollectionStatus.collected];
 
-  bool get _hasExtraFilters => _filter.serviceTypeId != null || _filter.period.kind != PeriodKind.all;
+  bool get _hasExtraFilters =>
+      _filter.serviceTypeId != null || _filter.period.kind != PeriodKind.all || _filter.outstandingOnly;
 
   Future<void> _openFilters() async {
     final result = await showModalBottomSheet<ServiceFilter>(
@@ -100,14 +107,24 @@ class _ServicesScreenState extends ConsumerState<ServicesScreen> {
               ],
             ),
           ),
-          if (_hasExtraFilters) _ActiveFilters(filter: _filter, onClear: () {
-            setState(() => _filter = _filter.copyWith(serviceTypeId: () => null, period: DatePeriod.all));
-          }),
+          if (_hasExtraFilters)
+            _ActiveFilters(
+              filter: _filter,
+              onClear: () => setState(
+                () => _filter = _filter.copyWith(
+                  serviceTypeId: () => null,
+                  period: DatePeriod.all,
+                  outstandingOnly: false,
+                ),
+              ),
+            ),
           const SizedBox(height: 4),
           Expanded(
             child: services.when(
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, _) => const Center(child: EmptyState(icon: AppSvgIcons.services, title: 'تعذّر تحميل الخدمات')),
+              error: (_, _) => const Center(
+                child: EmptyState(icon: AppSvgIcons.services, title: 'تعذّر تحميل الخدمات'),
+              ),
               data: (list) {
                 if (list.isEmpty) {
                   final filtered = _filter.query.isNotEmpty || _filter.status != null || _hasExtraFilters;
@@ -156,14 +173,20 @@ class _ActiveFilters extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final types = ref.watch(serviceTypesProvider).value ?? const [];
     final typeName = types.where((t) => t.id == filter.serviceTypeId).map((t) => t.name).firstOrNull;
-    final parts = [?typeName, if (filter.period.kind != PeriodKind.all) filter.period.label];
+    final parts = [
+      if (filter.outstandingOnly) 'غير المحصّل فقط',
+      ?typeName,
+      if (filter.period.kind != PeriodKind.all) filter.period.label,
+    ];
     return Padding(
       padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 8, 0),
       child: Row(
         children: [
           const Icon(Icons.filter_alt_rounded, size: 16, color: AppColors.primary),
           const SizedBox(width: 6),
-          Expanded(child: Text(parts.join(' · '), style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis)),
+          Expanded(
+            child: Text(parts.join(' · '), style: AppTextStyles.caption, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
           TextButton(onPressed: onClear, child: const Text('مسح الفلاتر')),
         ],
       ),
@@ -243,10 +266,8 @@ class _FilterSheetState extends ConsumerState<_FilterSheet> {
             ),
             const SizedBox(height: 24),
             FilledButton(
-              onPressed: () => Navigator.pop(
-                context,
-                widget.initial.copyWith(serviceTypeId: () => _typeId, period: _period),
-              ),
+              onPressed: () =>
+                  Navigator.pop(context, widget.initial.copyWith(serviceTypeId: () => _typeId, period: _period)),
               child: const Text('تطبيق الفلاتر'),
             ),
           ],

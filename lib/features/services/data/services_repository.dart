@@ -30,7 +30,8 @@ class ServicesRepository {
 
   final AppDatabase _db;
 
-  static const _base = '''
+  /// الخدمات مع اسم النوع والعميل والمحصّل، تحت الاسم المستعار `x`.
+  static const baseQuery = '''
     SELECT * FROM (
       SELECT s.*, t.name AS type_name, c.name AS client_name, c.name_normalized AS client_name_normalized,
         COALESCE((SELECT SUM(col.amount_minor) FROM collections col WHERE col.service_id = s.id), 0) AS collected
@@ -40,10 +41,11 @@ class ServicesRepository {
     ) x
   ''';
 
-  Set<ResultSetImplementation<dynamic, dynamic>> get _tables =>
+  Set<ResultSetImplementation<dynamic, dynamic>> get tables =>
       {_db.services, _db.serviceTypes, _db.clients, _db.collections};
 
-  Stream<List<ServiceListItem>> watchServices(ServiceFilter filter) {
+  /// شرط WHERE (أو نص فارغ) ومتغيراته لفلتر [filter] على [baseQuery]. يُستخدم في التقارير أيضاً.
+  static ({String sql, List<Variable<Object>> variables}) whereFor(ServiceFilter filter) {
     final where = <String>[];
     final variables = <Variable<Object>>[];
 
@@ -77,6 +79,12 @@ class ServicesRepository {
       where.add('x.service_date <= ?');
       variables.add(Variable.withString(filter.period.endKey!));
     }
+    if (filter.outstandingOnly) where.add('x.commission_minor > x.collected');
+    return (sql: where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}', variables: variables);
+  }
+
+  Stream<List<ServiceListItem>> watchServices(ServiceFilter filter, {int? limit}) {
+    final (:sql, :variables) = whereFor(filter);
     final order = switch (filter.sort) {
       ServiceSort.newest => 'x.service_date DESC, x.id DESC',
       ServiceSort.highestValue => 'x.service_value_minor DESC, x.id DESC',
@@ -86,9 +94,9 @@ class ServicesRepository {
 
     return _db
         .customSelect(
-          '$_base ${where.isEmpty ? '' : 'WHERE ${where.join(' AND ')}'} ORDER BY $order',
+          '$baseQuery $sql ORDER BY $order${limit == null ? '' : ' LIMIT $limit'}',
           variables: variables,
-          readsFrom: _tables,
+          readsFrom: tables,
         )
         .watch()
         .map((rows) => rows.map(_toItem).toList());
@@ -97,7 +105,7 @@ class ServicesRepository {
   Stream<List<ServiceListItem>> watchForClient(int clientId) => watchServices(ServiceFilter(clientId: clientId));
 
   Stream<ServiceListItem?> watchService(int id) => _db
-      .customSelect('$_base WHERE x.id = ?', variables: [Variable.withInt(id)], readsFrom: _tables)
+      .customSelect('$baseQuery WHERE x.id = ?', variables: [Variable.withInt(id)], readsFrom: tables)
       .watchSingleOrNull()
       .map((row) => row == null ? null : _toItem(row));
 
@@ -185,6 +193,11 @@ final servicesRepositoryProvider =
 
 final serviceListProvider = StreamProvider.autoDispose.family<List<ServiceListItem>, ServiceFilter>(
   (ref, filter) => ref.watch(servicesRepositoryProvider).watchServices(filter),
+);
+
+/// آخر الخدمات المسجلة (للرئيسية).
+final latestServicesProvider = StreamProvider.autoDispose<List<ServiceListItem>>(
+  (ref) => ref.watch(servicesRepositoryProvider).watchServices(const ServiceFilter(), limit: 5),
 );
 
 final clientServicesProvider = StreamProvider.autoDispose.family<List<ServiceListItem>, int>(
