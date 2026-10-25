@@ -89,6 +89,32 @@ void main() {
     await _shot('10_client_details');
   });
 
+  appTest('services', (tester, app) async {
+    _phone(tester);
+    await app.seedExistingUser();
+    await ClientsRepository(app.db).create(const ClientInput(name: 'مصنع هابي'));
+    await app.pump(tester);
+    await enterPin(tester, '482915');
+    await tapVisible(tester, find.text('الخدمات'));
+    await tapVisible(tester, find.byType(FloatingActionButton));
+    await tapVisible(tester, find.text('اختر العميل').first);
+    await tapVisible(tester, find.text('مصنع هابي'));
+    await tester.enterText(find.byType(TextFormField).at(0), 'تركيب 5 نقاط شبكة');
+    await tester.enterText(find.byType(TextFormField).at(1), '1000');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await settle(tester);
+    await tester.scrollUntilVisible(find.text('مستحقاتي من الخدمة'), 200, scrollable: find.byType(Scrollable).last);
+    await settle(tester);
+    await _shot('11_service_form');
+    await tapVisible(tester, find.text('حفظ الخدمة'));
+    await tester.pump(const Duration(seconds: 5));
+    await settle(tester);
+    await _shot('12_service_details');
+    await tester.scrollUntilVisible(find.text('تسجيل تحصيل'), 200, scrollable: find.byType(Scrollable).last);
+    await tapVisible(tester, find.text('تسجيل تحصيل'));
+    await _shot('13_collection_form');
+  });
+
   appTest('lock + settings', (tester, app) async {
     _phone(tester);
     await app.seedExistingUser();

@@ -275,16 +275,24 @@ class _ServicesSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final services = ref.watch(clientServicesProvider(clientId)).value ?? const [];
     if (services.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: AppSvgIcons.services,
         title: 'لا توجد خدمات لهذا العميل',
-        message: 'تسجيل الخدمات يُتاح في المرحلة 5، وستظهر هنا مع إجمالياتها.',
+        message: 'سجّل خدمة وستظهر هنا مع إجمالياتها.',
+        actionLabel: 'إضافة خدمة لهذا العميل',
+        onAction: () => context.push(AppRoutes.newService(clientId: clientId)),
       );
     }
     final shown = filter == null ? services : services.where((s) => s.collection.status == filter).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        OutlinedButton.icon(
+          onPressed: () => context.push(AppRoutes.newService(clientId: clientId)),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('إضافة خدمة لهذا العميل'),
+        ),
+        const SizedBox(height: 12),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -308,7 +316,7 @@ class _ServicesSection extends ConsumerWidget {
             child: Text('لا توجد خدمات بهذه الحالة', style: AppTextStyles.caption, textAlign: TextAlign.center),
           ),
         for (final item in shown) ...[
-          ServiceTile(item: item),
+          ServiceTile(item: item, onTap: () => context.push(AppRoutes.serviceDetails(item.service.id))),
           const SizedBox(height: 10),
         ],
       ],

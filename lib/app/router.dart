@@ -12,6 +12,8 @@ import '../features/auth/presentation/pin_verify_screen.dart';
 import '../features/clients/presentation/client_details_screen.dart';
 import '../features/clients/presentation/client_form_screen.dart';
 import '../features/clients/presentation/clients_screen.dart';
+import '../features/collections/presentation/collection_form_screen.dart';
+import '../features/collections/presentation/collections_log_screen.dart';
 import '../features/dashboard/presentation/dashboard_screen.dart';
 import '../features/onboarding/presentation/biometric_step_screen.dart';
 import '../features/onboarding/presentation/pin_step_screen.dart';
@@ -21,6 +23,10 @@ import '../features/onboarding/presentation/recovery_step_screen.dart';
 import '../features/onboarding/presentation/welcome_screen.dart';
 import '../features/placeholders/section_placeholder_screen.dart';
 import '../features/profile/presentation/profile_screen.dart';
+import '../features/services/presentation/service_details_screen.dart';
+import '../features/services/presentation/service_form_screen.dart';
+import '../features/services/presentation/services_screen.dart';
+import '../features/settings/presentation/service_types_screen.dart';
 import '../features/settings/presentation/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/splash/presentation/splash_screen.dart';
@@ -45,6 +51,17 @@ abstract final class AppRoutes {
   static const newClient = '/clients/new';
   static String clientDetails(int id) => '/clients/$id';
   static String editClient(int id) => '/clients/$id/edit';
+
+  static String newService({int? clientId}) =>
+      Uri(path: '/services/new', queryParameters: clientId == null ? null : {'clientId': '$clientId'}).toString();
+  static String serviceDetails(int id) => '/services/$id';
+  static String editService(int id) => '/services/$id/edit';
+  static String newCollection(int serviceId) => '/services/$serviceId/collect';
+  static String collections(int serviceId) => '/services/$serviceId/collections';
+  static String editCollection(int serviceId, int collectionId) =>
+      '/services/$serviceId/collections/$collectionId/edit';
+
+  static const serviceTypes = '/settings/service-types';
 
   static String onboardingStep(OnboardingStep step) => '$onboarding/${step.name}';
 }
@@ -126,8 +143,10 @@ final routerProvider = Provider<GoRouter>((ref) {
               builder: (context, state) => const ClientsScreen(),
               routes: [
                 fullScreen('new', ClientFormScreen.new),
+                // التفاصيل فوق كل الأقسام حتى تُفتح من أي قسم دون تبديل التبويب.
                 GoRoute(
                   path: ':id',
+                  parentNavigatorKey: _rootNavigatorKey,
                   builder: (context, state) => ClientDetailsScreen(clientId: _id(state)),
                   routes: [
                     GoRoute(
@@ -143,12 +162,48 @@ final routerProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(routes: [
             GoRoute(
               path: AppRoutes.services,
-              builder: (context, state) => const SectionPlaceholderScreen(
-                title: 'الخدمات',
-                icon: AppSvgIcons.services,
-                emptyTitle: 'لا توجد خدمات بعد',
-                phase: 5,
-              ),
+              builder: (context, state) => const ServicesScreen(),
+              routes: [
+                GoRoute(
+                  path: 'new',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => ServiceFormScreen(
+                    initialClientId: int.tryParse(state.uri.queryParameters['clientId'] ?? ''),
+                  ),
+                ),
+                GoRoute(
+                  path: ':id',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => ServiceDetailsScreen(serviceId: _id(state)),
+                  routes: [
+                    GoRoute(
+                      path: 'edit',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => ServiceFormScreen(serviceId: _id(state)),
+                    ),
+                    GoRoute(
+                      path: 'collect',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => CollectionFormScreen(serviceId: _id(state)),
+                    ),
+                    GoRoute(
+                      path: 'collections',
+                      parentNavigatorKey: _rootNavigatorKey,
+                      builder: (context, state) => CollectionsLogScreen(serviceId: _id(state)),
+                      routes: [
+                        GoRoute(
+                          path: ':cid/edit',
+                          parentNavigatorKey: _rootNavigatorKey,
+                          builder: (context, state) => CollectionFormScreen(
+                            serviceId: _id(state),
+                            collectionId: int.parse(state.pathParameters['cid']!),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [
@@ -171,6 +226,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 fullScreen('change-pin', ChangePinScreen.new),
                 fullScreen('recovery-code', NewRecoveryCodeScreen.new),
                 fullScreen('verify-pin', PinVerifyScreen.new),
+                fullScreen('service-types', ServiceTypesScreen.new),
               ],
             ),
           ]),

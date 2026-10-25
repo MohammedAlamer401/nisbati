@@ -21,6 +21,7 @@ class LabeledField extends StatelessWidget {
     this.suffixText,
     this.onChanged,
     this.maxLines = 1,
+    this.focusNode,
   });
 
   final String label;
@@ -38,6 +39,7 @@ class LabeledField extends StatelessWidget {
   final String? suffixText;
   final ValueChanged<String>? onChanged;
   final int maxLines;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
@@ -56,9 +58,12 @@ class LabeledField extends StatelessWidget {
         const SizedBox(height: 6),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           validator: validator,
           keyboardType: keyboardType,
           textDirection: textDirection,
+          // الأرقام (LTR) تُحاذى يميناً في الواجهة العربية فتبتعد عن رمز العملة أو %.
+          textAlign: textDirection == TextDirection.ltr ? TextAlign.right : TextAlign.start,
           textInputAction: textInputAction,
           inputFormatters: inputFormatters,
           maxLength: maxLength,

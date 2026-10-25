@@ -92,7 +92,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               title: 'لا توجد خدمات خلال هذه الفترة',
               message: 'سجّل خدمتك الأولى وسيحسب التطبيق نسبتك فوراً.',
               actionLabel: 'أضف أول خدمة',
-              onAction: () => context.go(AppRoutes.services),
+              onAction: () => context.push(AppRoutes.newService()),
             ),
           ],
         ),

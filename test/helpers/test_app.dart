@@ -96,7 +96,8 @@ void appTest(
 /// وإلا يتحرك العنصر بعد حساب موضع الضغط.
 Future<void> tapVisible(WidgetTester tester, Finder finder) async {
   await tester.pump(const Duration(milliseconds: 300));
-  await tester.ensureVisible(finder);
+  // إلى منتصف الشاشة إن أمكن، بعيداً عن الرسائل العائمة أسفلها.
+  await Scrollable.ensureVisible(tester.element(finder), alignment: 0.5);
   await tester.pump(const Duration(milliseconds: 300));
   await tester.tap(finder);
   await settle(tester);

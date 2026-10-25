@@ -192,7 +192,7 @@ void main() {
 
       await tapVisible(tester, find.text('الرئيسية'));
       await tapVisible(tester, find.text('أضف أول خدمة'));
-      expect(find.text('لا توجد خدمات بعد'), findsOneWidget);
+      expect(find.text('إضافة خدمة جديدة'), findsOneWidget);
     });
 
     appTest('لا تجاوز للحدود على شاشة 360dp مع تكبير الخط 130%', (tester, app) async {
