@@ -40,7 +40,7 @@ dart run flutter_launcher_icons
 
 | المسار | التشغيل | الناتج |
 |---|---|---|
-| `ios-unsigned` | تلقائي مع كل push على `main` | تحليل واختبارات وتحقق من بناء iOS (غير موقّع) |
+| `ios-unsigned` | تلقائي مع كل push على `main` | تحليل واختبارات، ثم `nisbati-<رقم>-unsigned.ipa` |
 | `android-apk` | يدوي | APK للتجربة |
 | `ios-testflight` | يدوي | IPA مرفوع إلى TestFlight |
 

@@ -1,7 +1,7 @@
 # Codemagic CI/CD — https://codemagic.io
 #
-# - ios-unsigned: يعمل تلقائياً مع كل push على main: تحليل واختبارات، ثم يتحقق
-#   أن نسخة iOS تُبنى (بدون توقيع، لا تُثبَّت على جهاز).
+# - ios-unsigned: يعمل تلقائياً مع كل push على main: تحليل واختبارات، ثم ملف
+#   IPA غير موقّع (يُثبَّت بعد إعادة توقيعه عبر Sideloadly أو AltStore).
 # - android-apk: يدوي، ويُخرج APK للتجربة.
 # - ios-testflight: يدوي، ويحتاج حساب Apple Developer وربط مفتاح
 #   App Store Connect في Codemagic (Teams → Integrations) باسم "Nisbati ASC".
@@ -60,10 +60,15 @@ workflows:
       - *test
       - name: Build iOS (no codesign)
         script: flutter build ios --release --no-codesign --build-number=$PROJECT_BUILD_NUMBER
-      - name: Package Runner.app
-        script: cd build/ios/iphoneos && zip -r Runner-unsigned.zip Runner.app
+      # IPA غير موقّع: يُثبَّت عبر أدوات تعيد توقيعه بحساب Apple (مثل Sideloadly أو AltStore).
+      - name: Package unsigned IPA
+        script: |
+          cd build/ios/iphoneos
+          rm -rf Payload && mkdir Payload
+          cp -R Runner.app Payload/
+          zip -qry "nisbati-$PROJECT_BUILD_NUMBER-unsigned.ipa" Payload
     artifacts:
-      - build/ios/iphoneos/Runner-unsigned.zip
+      - build/ios/iphoneos/*.ipa
 
   ios-testflight:
     name: iOS TestFlight
