@@ -1,8 +1,8 @@
 # Codemagic CI/CD — https://codemagic.io
 #
-# - android-apk: يعمل تلقائياً مع كل push على main، ويُخرج APK للتجربة.
-# - ios-unsigned: يعمل تلقائياً مع كل push على main، ويتحقق أن نسخة iOS تُبنى
-#   (بدون توقيع، لا تُثبَّت على جهاز).
+# - ios-unsigned: يعمل تلقائياً مع كل push على main: تحليل واختبارات، ثم يتحقق
+#   أن نسخة iOS تُبنى (بدون توقيع، لا تُثبَّت على جهاز).
+# - android-apk: يدوي، ويُخرج APK للتجربة.
 # - ios-testflight: يدوي، ويحتاج حساب Apple Developer وربط مفتاح
 #   App Store Connect في Codemagic (Teams → Integrations) باسم "Nisbati ASC".
 
@@ -31,10 +31,6 @@ workflows:
     environment:
       <<: *env
       java: 17
-    triggering:
-      events: [push]
-      branch_patterns:
-        - pattern: main
     scripts:
       - *get_packages
       - *codegen
@@ -60,6 +56,8 @@ workflows:
     scripts:
       - *get_packages
       - *codegen
+      - *analyze
+      - *test
       - name: Build iOS (no codesign)
         script: flutter build ios --release --no-codesign --build-number=$PROJECT_BUILD_NUMBER
       - name: Package Runner.app

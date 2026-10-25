@@ -40,8 +40,8 @@ dart run flutter_launcher_icons
 
 | المسار | التشغيل | الناتج |
 |---|---|---|
-| `android-apk` | تلقائي مع كل push على `main` | APK للتجربة |
-| `ios-unsigned` | تلقائي مع كل push على `main` | تحقق من بناء iOS (غير موقّع) |
+| `ios-unsigned` | تلقائي مع كل push على `main` | تحليل واختبارات وتحقق من بناء iOS (غير موقّع) |
+| `android-apk` | يدوي | APK للتجربة |
 | `ios-testflight` | يدوي | IPA مرفوع إلى TestFlight |
 
 **الإعداد:** في [codemagic.io](https://codemagic.io/apps) → Add application → GitHub → اختر المستودع → Codemagic يقرأ `codemagic.yaml` تلقائياً.
