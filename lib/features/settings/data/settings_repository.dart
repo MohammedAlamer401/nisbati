@@ -9,6 +9,8 @@ class AppPreferences {
     required this.currencySymbol,
     required this.defaultCommission,
     required this.autoLock,
+    this.lastBackupAt,
+    this.backupReminderDays = 7,
   });
 
   factory AppPreferences.fromMap(Map<String, String> map) {
@@ -17,13 +19,36 @@ class AppPreferences {
       currencySymbol: value(SettingKeys.currencySymbol),
       defaultCommission: Percent(int.tryParse(value(SettingKeys.defaultCommissionBp)) ?? 2000),
       autoLock: Duration(seconds: int.tryParse(value(SettingKeys.autoLockSeconds)) ?? 60),
+      lastBackupAt: DateTime.tryParse(map[SettingKeys.lastBackupAt] ?? ''),
+      backupReminderDays: int.tryParse(value(SettingKeys.backupReminderDays)) ?? 7,
     );
   }
 
   final String currencySymbol;
   final Percent defaultCommission;
   final Duration autoLock;
+  final DateTime? lastBackupAt;
+
+  /// كل كم يوماً يُذكَّر المستخدم بالنسخ الاحتياطي؛ 0 = إيقاف.
+  final int backupReminderDays;
+
+  /// عدد الأيام منذ آخر نسخة إن حان التذكير (−1 إن لم تُنشأ نسخة قط)، وإلا `null` (القسم 14.4).
+  int? backupReminderDue(DateTime now, {required bool hasData}) {
+    if (backupReminderDays <= 0 || !hasData) return null;
+    final last = lastBackupAt;
+    if (last == null) return -1;
+    final days = now.difference(last).inDays;
+    return days >= backupReminderDays ? days : null;
+  }
 }
+
+/// خيارات تذكير النسخ الاحتياطي.
+const backupReminderOptions = [
+  (0, 'إيقاف'),
+  (7, 'أسبوع'),
+  (14, 'أسبوعان'),
+  (30, 'شهر'),
+];
 
 /// خيارات مهلة القفل التلقائي (القسم 6.4).
 const autoLockOptions = [
@@ -65,6 +90,8 @@ class SettingsRepository {
 
   Future<void> setAutoLock(Duration duration) =>
       write(SettingKeys.autoLockSeconds, '${duration.inSeconds}');
+
+  Future<void> setBackupReminderDays(int days) => write(SettingKeys.backupReminderDays, '$days');
 }
 
 final settingsRepositoryProvider =

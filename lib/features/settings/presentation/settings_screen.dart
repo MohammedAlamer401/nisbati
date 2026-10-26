@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/router.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/app_text_styles.dart';
+import '../../../core/formatting/date_formatter.dart';
 import '../../../core/money/money.dart';
 import '../../../core/security/biometric_service.dart';
 import '../../../core/widgets/app_svg_icon.dart';
@@ -103,12 +104,17 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ]),
           const _SectionTitle('البيانات'),
-          const _Group(children: [
+          _Group(children: [
             ListTile(
-              enabled: false,
-              leading: AppSvgIcon(AppSvgIcons.backup, muted: true),
-              title: Text('النسخ الاحتياطي والاستعادة'),
-              subtitle: Text('قريباً (المرحلة 8)'),
+              leading: const AppSvgIcon(AppSvgIcons.backup),
+              title: const Text('النسخ الاحتياطي والاستعادة'),
+              subtitle: Text(
+                prefs?.lastBackupAt == null
+                    ? 'لم تُنشأ نسخة بعد'
+                    : 'آخر نسخة: ${DateFormatter.short(prefs!.lastBackupAt!)}',
+              ),
+              trailing: const Icon(Icons.chevron_left_rounded),
+              onTap: () => context.push(AppRoutes.backup),
             ),
           ]),
           const SizedBox(height: 16),

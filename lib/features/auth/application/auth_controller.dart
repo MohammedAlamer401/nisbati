@@ -88,6 +88,12 @@ class AuthController extends Notifier<AuthState> {
     if (DateTime.now().difference(hiddenAt) >= autoLock) lock();
   }
 
+  /// بعد استعادة نسخة احتياطية: قفل التطبيق وطلب الرمز السري (القسم 14.2).
+  Future<void> lockAfterRestore() async {
+    await _auth.requirePinNextUnlock();
+    lock();
+  }
+
   /// مسح كل البيانات والأسرار والبدء من جديد (القسم 6.6).
   Future<void> wipeEverything() async {
     await ref.read(appDatabaseProvider).resetToDefaults();

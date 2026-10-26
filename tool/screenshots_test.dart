@@ -183,6 +183,17 @@ void main() {
     });
   });
 
+  appTest('backup', (tester, app) async {
+    _phone(tester);
+    await app.seedExistingUser();
+    await app.pump(tester);
+    await enterPin(tester, '482915');
+    await tapVisible(tester, find.text('الإعدادات'));
+    await tester.scrollUntilVisible(find.text('النسخ الاحتياطي والاستعادة'), 200, scrollable: find.byType(Scrollable).last);
+    await tapVisible(tester, find.text('النسخ الاحتياطي والاستعادة'));
+    await _shot('16_backup');
+  });
+
   appTest('lock + settings', (tester, app) async {
     _phone(tester);
     await app.seedExistingUser();

@@ -55,15 +55,18 @@ class ProfileRepository {
   }
 
   /// ينسخ الصورة المختارة إلى مجلد التطبيق ويحذف السابقة.
-  Future<void> setPhoto(File source) async {
+  /// [touch] يحدّث تاريخ التعديل؛ الاستعادة تمرّر `false` لتبقى البيانات كما في النسخة.
+  Future<void> setPhoto(File source, {bool touch = true}) async {
     final docs = await _documentsDirectory();
     final folder = Directory('${docs.path}/$_photoFolder');
     await folder.create(recursive: true);
     final relative = '$_photoFolder/photo_${DateTime.now().millisecondsSinceEpoch}.jpg';
     await source.copy('${docs.path}/$relative');
     final previous = (await get())?.photoPath;
-    await (_db.update(_db.userProfiles)..where((p) => p.id.equals(1)))
-        .write(UserProfilesCompanion(photoPath: Value(relative), updatedAt: Value(DateTime.now())));
+    await (_db.update(_db.userProfiles)..where((p) => p.id.equals(1))).write(UserProfilesCompanion(
+      photoPath: Value(relative),
+      updatedAt: touch ? Value(DateTime.now()) : const Value.absent(),
+    ));
     await _deleteFile(previous);
   }
 

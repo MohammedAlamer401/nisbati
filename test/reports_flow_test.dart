@@ -47,6 +47,7 @@ void main() {
     expect(find.text('خدمة واحدة في هذه الفترة'), findsOneWidget);
     expect(find.text('غير محصّل حتى الآن'), findsOneWidget);
     expect(find.textContaining('150.00'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('المستحقات حسب الشهر'), 200, scrollable: find.byType(Scrollable).first);
     expect(find.text('المستحقات حسب الشهر'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.text('آخر الخدمات'), 200, scrollable: find.byType(Scrollable).first);

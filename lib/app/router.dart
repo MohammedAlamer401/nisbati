@@ -8,6 +8,7 @@ import '../features/auth/presentation/forgot_pin_screen.dart';
 import '../features/auth/presentation/lock_screen.dart';
 import '../features/auth/presentation/new_recovery_code_screen.dart';
 import '../features/auth/presentation/pin_verify_screen.dart';
+import '../features/backup/presentation/backup_screen.dart';
 import '../features/clients/presentation/client_details_screen.dart';
 import '../features/clients/presentation/client_form_screen.dart';
 import '../features/clients/presentation/clients_screen.dart';
@@ -62,6 +63,7 @@ abstract final class AppRoutes {
       '/services/$serviceId/collections/$collectionId/edit';
 
   static const serviceTypes = '/settings/service-types';
+  static const backup = '/settings/backup';
 
   static String onboardingStep(OnboardingStep step) => '$onboarding/${step.name}';
 }
@@ -226,6 +228,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 fullScreen('recovery-code', NewRecoveryCodeScreen.new),
                 fullScreen('verify-pin', PinVerifyScreen.new),
                 fullScreen('service-types', ServiceTypesScreen.new),
+                fullScreen('backup', BackupScreen.new),
               ],
             ),
           ]),

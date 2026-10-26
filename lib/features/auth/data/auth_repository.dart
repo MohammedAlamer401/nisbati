@@ -137,6 +137,9 @@ class AuthRepository {
   /// يمسح كل الأسرار (عند المسح الكامل أو التثبيت الجديد).
   Future<void> wipe() => _store.deleteAll();
 
+  /// يفرض الرمز السري في الفتح القادم بدل البصمة (بعد استعادة نسخة — القسم 6.3).
+  Future<void> requirePinNextUnlock() => _store.delete(SecureKeys.lastPinAuthAt);
+
   // --- داخلي ---
 
   Future<void> _writeHash(String secret, String hashKey, String saltKey, String iterationsKey) async {

@@ -74,6 +74,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
         PinRequirement.weeklyReminder when _biometric =>
           'أدخل رمزك السري للتأكد (مرّ أسبوع على آخر استخدام له)',
         PinRequirement.biometricFailures when _biometric => 'تعذّر التعرف على البصمة، أدخل رمزك السري',
+        PinRequirement.noRecentPin when _biometric => 'أدخل رمزك السري للمتابعة',
         _ => null,
       };
 

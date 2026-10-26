@@ -97,6 +97,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               hasOutstanding: !outstanding.isZero,
               onTap: () => context.go(AppRoutes.outstandingServices),
             ),
+            if (ref.watch(preferencesProvider).value?.backupReminderDue(DateTime.now(), hasData: hasAnyService)
+                case final days?) ...[
+              const SizedBox(height: 12),
+              _BackupReminder(days: days, onTap: () => context.push(AppRoutes.backup)),
+            ],
             if (hasAnyService && months != null) ...[
               const SizedBox(height: 12),
               MonthlyChart(months: months, symbol: symbol),
@@ -164,6 +169,36 @@ class _Header extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// تذكير النسخ الاحتياطي (القسم 14.4): [days] منذ آخر نسخة، أو −1 إن لم تُنشأ نسخة قط.
+class _BackupReminder extends StatelessWidget {
+  const _BackupReminder({required this.days, required this.onTap});
+
+  final int days;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsetsDirectional.fromSTEB(16, 12, 8, 12),
+        child: Row(
+          children: [
+            const Icon(Icons.cloud_off_rounded, color: AppColors.warning),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                days < 0 ? 'لم تُنشئ نسخة احتياطية بعد' : 'آخر نسخة احتياطية قبل $days يوماً',
+                style: AppTextStyles.label,
+              ),
+            ),
+            TextButton(onPressed: onTap, child: const Text('إنشاء نسخة')),
+          ],
+        ),
+      ),
     );
   }
 }
